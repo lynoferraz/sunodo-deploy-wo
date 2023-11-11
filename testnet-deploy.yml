@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  authority-deployer:
+    image: cartesi/rollups-hardhat:1.0.0
+    command:
+      [
+        "deploy",
+        "--tags",
+        "Authority",
+        "--network",
+        "${NETWORK:?undefined NETWORK}",
+        "--export",
+        "/home/node/rollups.json",
+      ]
+    volumes:
+      - ./.deployments/${NETWORK:?undefined NETWORK}:/home/node
+    environment:
+      - MNEMONIC=${MNEMONIC:?undefined MNEMONIC}
+      - RPC_URL=${RPC_URL:?undefined RPC_URL}
+
+  dapp-deployer:
+    build:
+      dockerfile_inline: |
+          # syntax=docker.io/docker/dockerfile:1.4
+          FROM cartesi/rollups-cli:1.0.0
+          RUN apk update && apk add jq
+          RUN <<EOF
+          echo '
+            #!/bin/sh
+            if [ ! -f /deployments/$NETWORK/rollups.json ]; then
+              echo "No authority defined"
+              exit 1
+            fi
+            echo "Deploying DApp on network \"$NETWORK\" using consensus address \"$(cat /deployments/$NETWORK/rollups.json | jq -r '.contracts.Authority.address')\"..."
+            cartesi-rollups create \
+                --rpc "$RPC_URL" \
+                --mnemonic "$MNEMONIC" \
+                --templateHashFile /var/opt/cartesi/machine-snapshots/image/hash \
+                --outputFile "/deployments/$NETWORK/dapp.json" \
+                --consensusAddress "$(cat /deployments/$NETWORK/rollups.json | jq -r '.contracts.Authority.address')"
+          ' > deploy.sh
+          EOF
+          ENTRYPOINT [ "sh"]
+          CMD ["deploy.sh" ]
+
+    volumes:
+      - ./.sunodo:/var/opt/cartesi/machine-snapshots:ro
+      - ./.deployments:/deployments
+    environment:
+      - MNEMONIC=${MNEMONIC:?undefined MNEMONIC}
+      - NETWORK=${NETWORK:?undefined NETWORK}
+      - RPC_URL=${RPC_URL:?undefined RPC_URL}
+      - CHAIN_ID=${CHAIN_ID:?undefined CHAIN_ID}
