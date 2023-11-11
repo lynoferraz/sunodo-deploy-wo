@@ -22,7 +22,7 @@ source testnet.env
 Download file:
 
 ```shell
-wget https://github.com/lynoferraz/sunodo-deploy-hack/blob/main/testnet-deploy.yml
+wget https://github.com/lynoferraz/sunodo-deploy-wo/blob/main/testnet-deploy.yml
 ```
 
 Run the following commands
