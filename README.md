@@ -82,19 +82,17 @@ Since sunodo services depend on each other, start the anvil, database, redis
 SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . up -d anvil database redis
 ```
 
-Find the blockchain-data volume, and inspect it (set dapp variable):
+Get the name of the anvil container to send the deployment files to the volume:
 
 ```shell
-docker volume ls
-dapp=
-docker volume inspect ${dapp}_blockchain-data
+container=$(SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . ps | grep anvil | awk '{print $1}')
 ```
 
 Then copy the rollups.json file generated on a previous command the volume, so the validator node has the correct addresses. In linux the volume path should be something like `/var/lib/docker/volumes/${dapp}_blockchain-data/_data` (it should be run by superuser):
 
 ```shell
-sudo "NETWORK=$NETWORK" dapp=$dapp cp .deployments/$NETWORK/rollups.json /var/lib/docker/volumes/${dapp}_blockchain-data/_data/$NETWORK.json
-sudo "NETWORK=$NETWORK" dapp=$dapp cp .deployments/$NETWORK/dapp.json /var/lib/docker/volumes/${dapp}_blockchain-data/_data/dapp-$NETWORK.json
+docker cp .deployments/$NETWORK/rollups.json ${container}:/usr/share/sunodo/$NETWORK.json
+docker cp .deployments/$NETWORK/dapp.json ${container}:/usr/share/sunodo/dapp-$NETWORK.json
 ```
 
 Then start the validador and prompt:
