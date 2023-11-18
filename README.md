@@ -1,4 +1,4 @@
-# Deploy sunodo DApp in testnet instructions
+# Deploy Sunodo DApp in testnet instructions
 
 Create a file containing the network configuration testnet.env:
 
@@ -13,6 +13,8 @@ export WSS_URL=
 export CHAIN_ID=
 ```
 
+Names of the `NETWORK`s can be found on the [WAGMI-CHAINS packages](https://wagmi.sh/core/chains). Prefer to use these names, as the framework will try to load RPC, ChainID and other information from the Wagmi package. If you can't find yours be sure to fill correctly all the necessary network information, it will work just fine.
+
 Source it
 
 ```shell
@@ -22,7 +24,7 @@ source testnet.env
 Download file:
 
 ```shell
-wget https://github.com/lynoferraz/sunodo-deploy-wo/blob/main/testnet-deploy.yml
+wget https://raw.githubusercontent.com/lynoferraz/sunodo-deploy-wo/main/testnet-deploy.yml
 ```
 
 Run the following commands
@@ -67,7 +69,7 @@ PROVIDER_HTTP_ENDPOINT=[RPC_URL]
 Check where sunodo is installed on your system. E.g. linux you can check with
 
 ```shell
-npm list -g 
+npm list -g
 ```
 
 And define the sunodo path. E.g.:
@@ -76,7 +78,7 @@ And define the sunodo path. E.g.:
 sunodo_path=~/.nvm/versions/node/v18.18.0/lib/node_modules/@sunodo/cli/dist
 ```
 
-Since sunodo services depend on each other, start the anvil, database, redis
+Since Sunodo services depend on each other, start the anvil, database, redis
 
 ```shell
 SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . up -d anvil database redis
@@ -88,20 +90,20 @@ Get the name of the anvil container to send the deployment files to the volume:
 container=$(SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . ps | grep anvil | awk '{print $1}')
 ```
 
-Then copy the rollups.json file generated on a previous command the volume, so the validator node has the correct addresses. In linux the volume path should be something like `/var/lib/docker/volumes/${dapp}_blockchain-data/_data` (it should be run by superuser):
+Then copy the rollups.json file generated on a previous command the volume, so the validator node has the correct addresses. In Linux the volume path should be something like `/var/lib/docker/volumes/${dapp}_blockchain-data/_data` (it should be run by superuser):
 
 ```shell
 docker cp .deployments/$NETWORK/rollups.json ${container}:/usr/share/sunodo/$NETWORK.json
 docker cp .deployments/$NETWORK/dapp.json ${container}:/usr/share/sunodo/dapp-$NETWORK.json
 ```
 
-Then start the validador and prompt:
+Then start the validator and prompt:
 
 ```shell
 SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . up --attach prompt --attach validator
 ```
 
-Chech the running services with:
+Check the running services with:
 
 ```shell
 SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . ps
