@@ -2,12 +2,10 @@ version: "3.9"
 
 services:
   authority-deployer:
-    image: cartesi/rollups-hardhat:1.0.0
+    image: gbbabarros/rollups-hardhat:1.0.1
     command:
       [
         "deploy",
-        "--tags",
-        "Authority",
         "--network",
         "${NETWORK:?undefined NETWORK}",
         "--export",
@@ -18,12 +16,13 @@ services:
     environment:
       - MNEMONIC=${MNEMONIC:?undefined MNEMONIC}
       - RPC_URL=${RPC_URL:?undefined RPC_URL}
+      - NETWORK=${NETWORK:?undefined NETWORK}
 
   dapp-deployer:
     build:
       dockerfile_inline: |
           # syntax=docker.io/docker/dockerfile:1.4
-          FROM cartesi/rollups-cli:1.0.0
+          FROM gbbabarros/rollups-cli:1.0.1
           RUN apk update && apk add jq
           RUN <<EOF
           echo '
@@ -36,6 +35,7 @@ services:
             cartesi-rollups create \
                 --rpc "$RPC_URL" \
                 --mnemonic "$MNEMONIC" \
+                --deploymentFile "/deployments/$NETWORK/rollups.json" \
                 --templateHashFile /var/opt/cartesi/machine-snapshots/image/hash \
                 --outputFile "/deployments/$NETWORK/dapp.json" \
                 --consensusAddress "$(cat /deployments/$NETWORK/rollups.json | jq -r '.contracts.Authority.address')"
