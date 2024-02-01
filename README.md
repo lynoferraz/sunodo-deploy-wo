@@ -46,12 +46,16 @@ TX_CHAIN_ID=[CHAIN_ID]
 
 # dispatcher
 ## uses redis
-## uses chain-id (TX_CHAIN_ID acctually)
-AUTH_MNEMONIC=[MNEMONIC]
-RD_DAPP_DEPLOYMENT_FILE=/usr/share/sunodo/dapp-[NETWORK].json
-RD_ROLLUPS_DEPLOYMENT_FILE=/usr/share/sunodo/[NETWORK].json
+REDIS_ENDPOINT=${REDIS_ENDPOINT:-redis://127.0.0.1:6379}
+
+## uses chain-id (TX_CHAIN_ID actually)
+TX_CHAIN_IS_LEGACY: "false"
+TX_SIGNING_MNEMONIC=[MNEMONIC]
+DAPP_DEPLOYMENT_FILE=/usr/share/sunodo/dapp-[NETWORK].json
+ROLLUPS_DEPLOYMENT_FILE=/usr/share/sunodo/[NETWORK].json
 
 SC_DEFAULT_CONFIRMATIONS=10
+S6_CMD_WAIT_FOR_SERVICES_MAXTIME=${SM_DEADLINE_MACHINE:-30000}
 TX_PROVIDER_HTTP_ENDPOINT=[RPC_URL]
 TX_DEFAULT_CONFIRMATIONS=11
 
@@ -78,16 +82,16 @@ And define the sunodo path. E.g.:
 sunodo_path=~/.nvm/versions/node/v18.18.0/lib/node_modules/@sunodo/cli/dist
 ```
 
-Since Sunodo services depend on each other, start the anvil, database, redis
+Since Sunodo services depend on each other, start `anvil` & `database`
 
 ```shell
-SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . up -d anvil database redis
+SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-validator.yaml -f $sunodo_path/node/docker-compose-database.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-anvil.yaml -f $sunodo_path/node/docker-compose-proxy.yaml -f $sunodo_path/node/docker-compose-prompt.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . up -d anvil database
 ```
 
 Get the name of the anvil container to send the deployment files to the volume:
 
 ```shell
-container=$(SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . ps | grep anvil | awk '{print $1}')
+container=$(SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-validator.yaml -f $sunodo_path/node/docker-compose-anvil.yaml -f $sunodo_path/node/docker-compose-proxy.yaml -f $sunodo_path/node/docker-compose-prompt.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . ps | grep anvil | awk '{print $1}')
 ```
 
 Then copy the rollups.json file generated on a previous command the volume, so the validator node has the correct addresses. In Linux the volume path should be something like `/var/lib/docker/volumes/${dapp}_blockchain-data/_data` (it should be run by superuser):
@@ -100,17 +104,17 @@ docker cp .deployments/$NETWORK/dapp.json ${container}:/usr/share/sunodo/dapp-$N
 Then start the validator and prompt:
 
 ```shell
-SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . up --attach prompt --attach validator
+SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-validator.yaml -f $sunodo_path/node/docker-compose-anvil.yaml -f $sunodo_path/node/docker-compose-proxy.yaml -f $sunodo_path/node/docker-compose-prompt.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . up --attach prompt --attach validator
 ```
 
 Check the running services with:
 
 ```shell
-SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . ps
+SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-validator.yaml -f $sunodo_path/node/docker-compose-anvil.yaml -f $sunodo_path/node/docker-compose-proxy.yaml -f $sunodo_path/node/docker-compose-prompt.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . ps
 ```
 
 Then to stop all services run:
 
 ```shell
-SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-dev.yaml -f $sunodo_path/node/docker-compose-explorer.yaml -f $sunodo_path/node/docker-compose-traefik-config.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . down -v
+SUNODO_BIN_PATH=$sunodo_path docker compose -f $sunodo_path/node/docker-compose-validator.yaml -f $sunodo_path/node/docker-compose-anvil.yaml -f $sunodo_path/node/docker-compose-proxy.yaml -f $sunodo_path/node/docker-compose-prompt.yaml -f $sunodo_path/node/docker-compose-snapshot-volume.yaml -f $sunodo_path/node/docker-compose-envfile.yaml --project-directory . down -v
 ```
